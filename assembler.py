@@ -17,6 +17,57 @@
 #   add symbol table
 #   remove labels
 
+compDict = {
+    "0":    "0101010",
+    "1":    "0111111",
+    "-1":   "0111010",
+    "D":    "0001100",
+    "A":    "0110000",
+    "M":    "1110000",
+    "!D":   "0001101",
+    "!A":   "0110001",
+    "!M":   "1110001",
+    "-D":   "0001111",
+    "-A":   "0110011",
+    "-M":   "1110011",
+    "D+1":  "0011111",
+    "A+1":  "0110111",
+    "M+1":  "1110111",
+    "D-1":  "0001110",
+    "A-1":  "0110010",
+    "M-1":  "1110010",
+    "D+A":  "0000010",
+    "D+M":  "1000010",
+    "D-A":  "0010011",
+    "D-M":  "1010011",
+    "A-D":  "0000111",
+    "M-D":  "1000111",
+    "D&A":  "0000000",
+    "D&M":  "1000000",
+    "D|A":  "0010101",
+    "D|M":  "1010101"
+}
+destDict = {
+    "null":  "000",
+    "M":     "001",
+    "D":     "010",
+    "MD":    "011",
+    "A":     "100",
+    "AM":    "101",
+    "AD":    "110",
+    "AMD":   "111",
+}
+jumpDict = {
+    "null":  "000",
+    "JGT":   "001",
+    "JEQ":   "010",
+    "JGE":   "011",
+    "JLT":   "100",
+    "JNE":   "101",
+    "JLE":   "110",
+    "JMP":   "111",
+}
+
 # adds a new line after the C:\... file path
 print()
 
@@ -80,13 +131,18 @@ def dec_to_binary(num, word_length):
     return word
 
 
-def a_or_c_instruction():
-    # decides whether you have an A- or C-instruction
-    pass
+# decides whether you have an A- or C-instruction
+def a_or_c_instruction(instruction):
+    # if there's an @ symbol, you have an A-instruction. Otherwise, it's a
+    # C-instruction. We call the respective translations there.
+    if instruction[0] == "@":
+        return translate_a_instructions(instruction)
+    else:
+        return translate_c_instructions(instruction)
 
 
+# translates a-instructions after being called from a_or_c_instruction
 def translate_a_instructions(instruction):
-    # translates a-instructions after being called from a_or_c_instruction
     number = int(instruction[1:])
 
     # turn the number into a binary word string and add it to a 0!
@@ -95,7 +151,122 @@ def translate_a_instructions(instruction):
     return "0" + binary_word
 
 
-lines = open("asm/AInstructions.asm", "r")
+'''
+actually I'm not sure if this works, I'll need to use my old approach
+    Pseudocode for translating c-instructions
+    Arguments: instruction
+    
+    define comp as the substring from the position of the equals sign
+    if valueError, find comp again
+    
+    define jump as the substring from the position of the semicolon
+    if valueError, make jump equal to "000"
+    
+    define dest as the substring to the position of the equals sign
+    if valueError
+
+
+    define posOfEquals = line.indexOf("=")
+    define posOfSemicolon = line.index(";")
+    define ifDest = (posOfEquals !== -1) as a flag
+    define ifJump = (posOfSemicolon !== -1) as a flag
+    result = "111"
+    
+    if (ifDest && ifJump):
+        define dest = line.substring(0, posOfEquals)
+        result += destDict[dest]
+        define comp = line.substring(posOfEquals, posOfSemicolon)
+        result += compDict[comp]
+        define jump = line.substring(posOfSemicolon)
+        result += jumpDict[jump]
+    
+    else if (ifDest):
+        define dest = line.substring(0, posOfEquals)
+        result += destDict[dest]
+        define comp = line.substring(posOfEquals, posOfSemicolon)
+        result += compDict[comp]
+        result += jumpDict["null"]
+    
+    else if (ifJump):
+        result += destDict["null"]
+        define comp = line.substring(posOfEquals, posOfSemicolon)
+        result += compDict[comp]
+        define jump = line.substring(posOfSemicolon)
+        result += jumpDict[jump]
+    
+    return the result
+'''
+
+'''
+    define "111" as machineCode
+    binary_dest = ""
+    binary_comp = ""
+    binary_jump = ""
+    
+    
+    try:
+        dest = instruction[0:indexOfEquals]
+    except:
+        dest = "null"
+    
+    retrieve dest from dictionary and store it in binary_dest
+    
+    
+    try:
+        comp = instruction[indexOfEquals:indexOfSemicolon]
+    except:
+        try:
+            comp = instruction[indexOfEquals:]
+        except:
+            comp = instruction[:indexOfSemicolon]
+    
+    retrieve comp from dictionary and store it in binary_comp
+    
+    
+    try:
+        jump = instruction[indexOfSemicolon:]
+    except:
+        jump = "null"
+    
+    retrieve jump from dictionary and store it in binary_jump
+    
+    
+    return machineCode + binary_comp + binary_dest + binary_jump
+'''
+
+
+def translate_c_instructions(instruction):
+    machine_code = "111"
+
+    # find the destination
+    try:
+        dest = instruction[0:instruction.index("=")]
+    except ValueError:
+        dest = "null"
+
+    # find the computation
+    try:
+        comp = instruction[instruction.index("=") + 1:instruction.index(";")]
+    except ValueError:
+        try:
+            comp = instruction[instruction.index("=") + 1:]
+        except ValueError:
+            comp = instruction[:instruction.index(";")]
+
+    # find the jump
+    try:
+        jump = instruction[instruction.index(";") + 1:]
+    except ValueError:
+        jump = "null"
+
+    binary_dest = destDict[dest]
+    binary_comp = compDict[comp]
+    binary_jump = jumpDict[jump]
+
+    return machine_code + binary_comp + binary_dest + binary_jump
+
+
+lines = open("asm/PongL.asm", "r")
 for line in lines:
     stripped_line = line.strip("\n")
 
@@ -127,7 +298,7 @@ for line in lines:
 
     # if the line is whitespace, don't print it.
     if stripped_line != "":
-        print(f'{translate_a_instructions(whitespace_stripped_line)}')
+        print(f'{a_or_c_instruction(whitespace_stripped_line)}')
 
 # now that I'm done with the file, I can close it.
 lines.close()

@@ -1,0 +1,10 @@
+D=M
+D=D-M
+D;JGT
+0;JMP
+D=A
+A=M
+D=M
+D=D+A
+MD=M-1
+D;JGT
