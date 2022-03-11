@@ -17,6 +17,10 @@
 #   add symbol table
 #   remove labels
 
+# importing regular expressions
+# import re
+
+# computation, destination, jump, and symbol dictionaries.
 compDict = {
     "0":    "0101010",
     "1":    "0111111",
@@ -67,6 +71,34 @@ jumpDict = {
     "JLE":   "110",
     "JMP":   "111",
 }
+symbolDict = {
+    "R0":       0,
+    "R1":       1,
+    "R2":       2,
+    "R3":       3,
+    "R4":       4,
+    "R5":       5,
+    "R6":       6,
+    "R7":       7,
+    "R8":       8,
+    "R9":       9,
+    "R10":      10,
+    "R11":      11,
+    "R12":      12,
+    "R13":      13,
+    "R14":      14,
+    "R15":      15,
+    "SCREEN":   16384,
+    "KBD":      24576,
+    "SP":       0,
+    "LCL":      1,
+    "ARG":      2,
+    "THIS":     3,
+    "THAT":     4,
+}
+
+# next variable value.
+nextVarValue = 16
 
 # adds a new line after the C:\... file path
 print()
@@ -143,7 +175,37 @@ def a_or_c_instruction(instruction):
 
 # translates a-instructions after being called from a_or_c_instruction
 def translate_a_instructions(instruction):
-    number = int(instruction[1:])
+    global nextVarValue
+    number_string = instruction[1:]
+
+    try:
+        # if found, this is the integer representation of A-instruction's number
+        # string section.
+        int(number_string)
+    except TypeError:
+        # sometimes the a-instruction "number" will be a symbol! we need to
+        # check for the character not being a number.
+
+        # actually I don't need a regular expression, we know this is not a
+        # number already
+        # if_match = re.search(r"\b([^0-9])", number_string)
+        if symbolDict.get(number_string) is None:
+            symbolDict[number_string] = nextVarValue
+            nextVarValue += 1
+        number_string = symbolDict.get(number_string)
+    except ValueError:
+        # sometimes the a-instruction "number" will be a symbol! we need to
+        # check for the character not being a number.
+
+        # actually I don't need a regular expression, we know this is not a
+        # number already
+        # if_match = re.search(r"\b([^0-9])", number_string)
+        if symbolDict.get(number_string) is None:
+            symbolDict[number_string] = nextVarValue
+            nextVarValue += 1
+        number_string = symbolDict.get(number_string)
+
+    number = int(number_string)
 
     # turn the number into a binary word string and add it to a 0!
     binary_word = dec_to_binary(number, 15)
@@ -266,26 +328,10 @@ def translate_c_instructions(instruction):
     return machine_code + binary_comp + binary_dest + binary_jump
 
 
-lines = open("asm/PongL.asm", "r")
+lines = open("asm/AInstructions.asm", "r")
+linesPassed = 0
 for line in lines:
     stripped_line = line.strip("\n")
-
-    '''
-    # where have we searched for comments?
-    current_comment_index = 0
-
-
-    This can be simplified to using stripped_line.indexOf("//") and a try-except
-    block
-    # find if there is a comment and where it starts.
-    for char in stripped_line:
-        if char == "/":
-            break
-        current_comment_index += 1
-
-    # we should take the substring to the current comment index to remove any
-    # unnecessary comments.
-    '''
 
     # see if there is a comment and where it is
     try:
@@ -297,7 +343,39 @@ for line in lines:
     whitespace_stripped_line = stripped_line.strip(" ")
 
     # if the line is whitespace, don't print it.
-    if stripped_line != "":
+    # Now we have to deal with labels, which I shouldn't be printing. Now,
+    # I need to add it to my symbol table.
+    if whitespace_stripped_line != "":
+        if whitespace_stripped_line[0] == "(":
+            symbolDict[whitespace_stripped_line[1:-1]] = linesPassed
+            continue
+        linesPassed += 1
+        # print(f'{a_or_c_instruction(whitespace_stripped_line)}')
+
+# now that I'm done with the file, I can close it.
+lines.close()
+
+lines = open("asm/AInstructions.asm", "r")
+
+for line in lines:
+    stripped_line = line.strip("\n")
+
+    # see if there is a comment and where it is
+    try:
+        comment_index = stripped_line.index("//")
+        stripped_line = stripped_line[0:comment_index]
+    except ValueError:
+        pass
+
+    whitespace_stripped_line = stripped_line.strip(" ")
+
+    # if the line is whitespace, don't print it.
+    # Now we have to deal with labels, which I shouldn't be printing. Now,
+    # I need to add it to my symbol table.
+    if whitespace_stripped_line != "":
+        if whitespace_stripped_line[0] == "(":
+            continue
+        linesPassed += 1
         print(f'{a_or_c_instruction(whitespace_stripped_line)}')
 
 # now that I'm done with the file, I can close it.
@@ -310,3 +388,4 @@ for i in range(17):
 
 print(f"{16384}: {dec_to_binary(16384, 15)}")
 '''
+# print(symbolDict)
